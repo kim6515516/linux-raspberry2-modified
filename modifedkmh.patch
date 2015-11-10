@@ -1,0 +1,437 @@
+diff --git a/arch/arm/include/asm/arch_timer.h b/arch/arm/include/asm/arch_timer.h
+index d4ebf56..3db5b98 100644
+--- a/arch/arm/include/asm/arch_timer.h
++++ b/arch/arm/include/asm/arch_timer.h
+@@ -17,25 +17,44 @@ int arch_timer_arch_init(void);
+  * nicely work out which register we want, and chuck away the rest of
+  * the code. At least it does so with a recent GCC (4.6.3).
+  */
++//#define KMH 1
+ static __always_inline
+ void arch_timer_reg_write_cp15(int access, enum arch_timer_reg reg, u32 val)
+ {
+ 	if (access == ARCH_TIMER_PHYS_ACCESS) {
+ 		switch (reg) {
+ 		case ARCH_TIMER_REG_CTRL:
++#ifdef KMH
++			printk(KERN_ALERT "arch_timer_reg_write_cp15 ARCH_TIMER_PHYS_ACCESS CTRL val%x\n", val );
++#endif
+ 			asm volatile("mcr p15, 0, %0, c14, c2, 1" : : "r" (val));
++//			writel_relaxed(val, 0x3F700000);
+ 			break;
+ 		case ARCH_TIMER_REG_TVAL:
++#ifdef KMH
++			printk(KERN_ALERT "arch_timer_reg_write_cp15 ARCH_TIMER_PHYS_ACCESS TVAL val%x\n", val );
++#endif
+ 			asm volatile("mcr p15, 0, %0, c14, c2, 0" : : "r" (val));
++//			writel_relaxed(val, 0x3F700004);
+ 			break;
+ 		}
+ 	} else if (access == ARCH_TIMER_VIRT_ACCESS) {
+ 		switch (reg) {
+ 		case ARCH_TIMER_REG_CTRL:
+-			asm volatile("mcr p15, 0, %0, c14, c3, 1" : : "r" (val));
++#ifdef KMH
++			printk(KERN_ALERT "arch_timer_reg_write_cp15 ARCH_TIMER_VIRT_ACCESS CTRL val%x\n", val );
++#endif
++//			asm volatile("mcr p15, 0, %0, c14, c3, 1" : : "r" (val));
++			 asm volatile("mcr p15, 0, %0, c3, c1, 4" : : "r" (val ));
++//			writel_relaxed(val, 0x3F700008);
+ 			break;
+ 		case ARCH_TIMER_REG_TVAL:
+-			asm volatile("mcr p15, 0, %0, c14, c3, 0" : : "r" (val));
++#ifdef KMH
++			printk(KERN_ALERT "arch_timer_reg_write_cp15 ARCH_TIMER_VIRT_ACCESS TVAL val:%x\n", val );
++#endif
++//			asm volatile("mcr p15, 0, %0, c14, c3, 0" : : "r" (val ));
++			asm volatile("mcr p15, 0, %0, c3, c1, 5" : : "r" (val ));
++//			writel_relaxed(val, 0x3F70000B);
+ 			break;
+ 		}
+ 	}
+@@ -51,22 +70,43 @@ u32 arch_timer_reg_read_cp15(int access, enum arch_timer_reg reg)
+ 	if (access == ARCH_TIMER_PHYS_ACCESS) {
+ 		switch (reg) {
+ 		case ARCH_TIMER_REG_CTRL:
++#ifdef KMH
++			printk(KERN_ALERT "arch_timer_reg_read_cp15 ARCH_TIMER_PHYS_ACCESS CTRL val%x\n", val );
++#endif
+ 			asm volatile("mrc p15, 0, %0, c14, c2, 1" : "=r" (val));
++//			val = readl_relaxed(0x3F700000);
+ 			break;
+ 		case ARCH_TIMER_REG_TVAL:
++#ifdef KMH
++			printk(KERN_ALERT "arch_timer_reg_read_cp15 ARCH_TIMER_PHYS_ACCESS TVAL val%x\n", val );
++#endif
+ 			asm volatile("mrc p15, 0, %0, c14, c2, 0" : "=r" (val));
++//			val = readl_relaxed(0x3F700004);
+ 			break;
+ 		}
+ 	} else if (access == ARCH_TIMER_VIRT_ACCESS) {
+ 		switch (reg) {
+ 		case ARCH_TIMER_REG_CTRL:
+-			asm volatile("mrc p15, 0, %0, c14, c3, 1" : "=r" (val));
++#ifdef KMH
++			printk(KERN_ALERT "arch_timer_reg_read_cp15 ARCH_TIMER_VIRT_ACCESS CTRL val%x\n", val );
++#endif
++//			asm volatile("mrc p15, 0, %0, c14, c3, 1" : "=r" (val));
++			asm volatile("mrc p15, 0, %0, c3, c1, 4" :  "=r" (val ));
++//			val = readl_relaxed(0x3F700008);
+ 			break;
+ 		case ARCH_TIMER_REG_TVAL:
+-			asm volatile("mrc p15, 0, %0, c14, c3, 0" : "=r" (val));
++#ifdef KMH
++			printk(KERN_ALERT "arch_timer_reg_read_cp15 ARCH_TIMER_VIRT_ACCESS TVAL val%x\n", val );
++#endif
++//			asm volatile("mrc p15, 0, %0, c14, c3, 0" : "=r" (val));
++			asm volatile("mrc p15, 0, %0, c3, c1, 5" : "=r" (val ));
++//			val = readl_relaxed(0x3F70000B);
+ 			break;
+ 		}
+ 	}
++#ifdef KMH
++			printk(KERN_ALERT "arch_timer_reg_read_cp15 val:%x\n", val );
++#endif
+ 
+ 	return val;
+ }
+@@ -84,6 +124,9 @@ static inline u64 arch_counter_get_cntpct(void)
+ 
+ 	isb();
+ 	asm volatile("mrrc p15, 0, %Q0, %R0, c14" : "=r" (cval));
++
++    printk(KERN_ALERT "arch_counter_get_cntpct val:%x\n", cval );
++
+ 	return cval;
+ }
+ 
+@@ -93,6 +136,9 @@ static inline u64 arch_counter_get_cntvct(void)
+ 
+ 	isb();
+ 	asm volatile("mrrc p15, 1, %Q0, %R0, c14" : "=r" (cval));
++#ifdef gg
++			printk(KERN_ALERT "arch_counter_get_cntvct val: %x\n", cval );
++#endif
+ 	return cval;
+ }
+ 
+@@ -105,6 +151,8 @@ static inline u32 arch_timer_get_cntkctl(void)
+ 
+ static inline void arch_timer_set_cntkctl(u32 cntkctl)
+ {
++	//printk(KERN_ALERT "arch_timer_set_cntkctl  val%x\n", cntkctl );
++
+ 	asm volatile("mcr p15, 0, %0, c14, c1, 0" : : "r" (cntkctl));
+ }
+ 
+diff --git a/arch/arm/kernel/irq.c b/arch/arm/kernel/irq.c
+index ad857ba..2c1720d 100644
+--- a/arch/arm/kernel/irq.c
++++ b/arch/arm/kernel/irq.c
+@@ -44,6 +44,12 @@
+ #include <asm/mach/irq.h>
+ #include <asm/mach/time.h>
+ 
++/*
++#define read_hcr()              ({ int rval; asm volatile(\
++                                "ldr %0, 0x40000060 \n\t" \
++                                : "=r" (rval) : : "memory", "cc"); rval; })
++*/
++
+ unsigned long irq_err_count;
+ 
+ int arch_show_interrupts(struct seq_file *p, int prec)
+@@ -72,9 +78,30 @@ void handle_IRQ(unsigned int irq, struct pt_regs *regs)
+ /*
+  * asm_do_IRQ is the interface to be used from assembly code.
+  */
++
++
++
+ asmlinkage void __exception_irq_entry
+ asm_do_IRQ(unsigned int irq, struct pt_regs *regs)
+ {
++//	int r =  read_hcr();
++//	printk(KERN_ALERT "irq:%d, local irq:%x \n", irq,0 );
++
++//	printk(KERN_ALERT "ARM_LOCAL_IRQ_PENDING0: %x \n", *((volatile unsigned int*) ARM_LOCAL_IRQ_PENDING0) );
++//	printk(KERN_ALERT "ARMCTRL_IC_BASE:%x \n", *((volatile unsigned int*)ARMCTRL_IC_BASE) );
++//	printk(KERN_ALERT "ARM_IRQ_PEND1:%x \n", *((volatile unsigned int*)ARM_IRQ_PEND1) );
++//	printk(KERN_ALERT "ARM_IRQ_PEND2:%x \n", *((volatile unsigned int*)ARM_IRQ_PEND2) );
++//	printk(KERN_ALERT "ARM_IRQ_PEND0:%x \n", *((volatile unsigned int*)ARM_IRQ_PEND0) );
++//	printk(KERN_ALERT "ARM_IRQ_LOCAL_BASE:%x \n", ARM_IRQ_LOCAL_BASE );
++//	printk(KERN_ALERT "ARMCTRL_IC_BASE:%x \n",*((volatile unsigned int*)ARMCTRL_IC_BASE) );
++//	printk(KERN_ALERT "IO_ADDRESS(ARMCTRL_IC_BASE):%x \n", *(volatile unsigned int*)IO_ADDRESS(ARMCTRL_IC_BASE) );
++//	printk(KERN_ALERT "__io_address(ARM_LOCAL_IRQ_PENDING0):%x \n", __io_address(ARM_LOCAL_IRQ_PENDING0) );
++/*
++	printk(KERN_ALERT "ARM_IRQ0_BASE:%x \n", ARM_IRQ0_BASE );
++	printk(KERN_ALERT "ARM_IRQ1_BASE:%x \n", ARM_IRQ1_BASE );
++
++	printk(KERN_ALERT "ARM_IRQ2_BASE:%x \n", ARM_IRQ2_BASE );
++*/
+ 	handle_IRQ(irq, regs);
+ }
+ 
+diff --git a/arch/arm/mach-bcm2709/armctrl.c b/arch/arm/mach-bcm2709/armctrl.c
+index fc6cb8b..f262158 100644
+--- a/arch/arm/mach-bcm2709/armctrl.c
++++ b/arch/arm/mach-bcm2709/armctrl.c
+@@ -54,6 +54,9 @@ static void armctrl_mask_irq(struct irq_data *d)
+ 		0
+ 	};
+ 	int i;
++#ifdef KMH
++	printk(KERN_ALERT "armctrl mask irq %d :%x \n", d->irq );
++#endif
+ 	if (d->irq >= FIQ_START) {
+ 		writel(0, __io_address(ARM_IRQ_FAST));
+ 	} else if (d->irq >= IRQ_ARM_LOCAL_CNTPSIRQ && d->irq < IRQ_ARM_LOCAL_CNTPSIRQ + 4) {
+@@ -63,6 +66,9 @@ static void armctrl_mask_irq(struct irq_data *d)
+ 		{
+ 			unsigned int val =   readl(__io_address(ARM_LOCAL_TIMER_INT_CONTROL0 + 4*i));
+ 			writel(val &~ (1 << data), __io_address(ARM_LOCAL_TIMER_INT_CONTROL0 + 4*i));
++#ifdef KMH
++			printk(KERN_ALERT "armctrl mask  i:%d val:%x data:%x \n", i, val, data );
++#endif
+ 		}
+ #endif
+ 	} else if (d->irq >= IRQ_ARM_LOCAL_MAILBOX0 && d->irq < IRQ_ARM_LOCAL_MAILBOX0 + 4) {
+@@ -90,6 +96,9 @@ static void armctrl_unmask_irq(struct irq_data *d)
+ 		0
+ 	};
+ 	int i;
++#ifdef KMH
++	printk(KERN_ALERT "armctrl armctrl_unmask_irq irq %d :%x \n", d->irq );
++#endif
+ 	if (d->irq >= FIQ_START) {
+ 		unsigned int data;
+ 		if (num_online_cpus() > 1) {
+@@ -108,6 +117,9 @@ static void armctrl_unmask_irq(struct irq_data *d)
+ 		{
+ 			unsigned int val =  readl(__io_address(ARM_LOCAL_TIMER_INT_CONTROL0 + 4*i));
+ 			writel(val | (1 << data), __io_address(ARM_LOCAL_TIMER_INT_CONTROL0 + 4*i));
++#ifdef KMH
++			printk(KERN_ALERT "armctrl unmask  i:%d val:%x data:%x write:%x chip:%x\n", i, val, data, (val | (1 << data)), (unsigned int)irq_get_chip_data(d->irq) );
++#endif
+ 		}
+ #endif
+ 	} else if (d->irq >= IRQ_ARM_LOCAL_MAILBOX0 && d->irq < IRQ_ARM_LOCAL_MAILBOX0 + 4) {
+@@ -197,6 +209,7 @@ static int armctrl_xlate(struct irq_domain *d, struct device_node *ctrlr,
+ 		*out_hwirq = INTERRUPT_ARASANSDIO;
+ 		break;
+ 	}
++	printk(KERN_ALERT "out_hwirq:%x \n", *out_hwirq);
+ 
+         *out_type = IRQ_TYPE_NONE;
+         return 0;
+diff --git a/arch/arm/mach-bcm2709/bcm2709.c b/arch/arm/mach-bcm2709/bcm2709.c
+index aa91259..e9ea00e 100644
+--- a/arch/arm/mach-bcm2709/bcm2709.c
++++ b/arch/arm/mach-bcm2709/bcm2709.c
+@@ -1151,7 +1151,7 @@ static void __init board_reserve(void)
+ #endif
+ }
+ 
+-
++#ifdef CONFIG_SMP
+ #include <linux/smp.h>
+ 
+ #include <mach/hardware.h>
+@@ -1254,6 +1254,7 @@ struct smp_operations  bcm2709_smp_ops __initdata = {
+ 	.smp_secondary_init	= bcm2709_secondary_init,
+ 	.smp_boot_secondary	= bcm2709_boot_secondary,
+ };
++#endif
+ 
+ static const char * const bcm2709_compat[] = {
+ 	"brcm,bcm2709",
+diff --git a/arch/arm/mach-bcm2709/include/mach/arm_control.h b/arch/arm/mach-bcm2709/include/mach/arm_control.h
+index e346caf..70d035c 100644
+--- a/arch/arm/mach-bcm2709/include/mach/arm_control.h
++++ b/arch/arm/mach-bcm2709/include/mach/arm_control.h
+@@ -168,7 +168,6 @@
+  * Semaphores, Doorbells, Mailboxes Owner 0
+  *
+  */
+-
+ #define ARM_0_SEMS       HW_REGISTER_RW(ARM_SBM_OWN0+0x00)
+ #define ARM_0_SEM0       HW_REGISTER_RW(ARM_SBM_OWN0+0x00)
+ #define ARM_0_SEM1       HW_REGISTER_RW(ARM_SBM_OWN0+0x04)
+diff --git a/arch/arm/mach-bcm2709/include/mach/entry-macro.S b/arch/arm/mach-bcm2709/include/mach/entry-macro.S
+index 101d9f1..3259c83 100644
+--- a/arch/arm/mach-bcm2709/include/mach/entry-macro.S
++++ b/arch/arm/mach-bcm2709/include/mach/entry-macro.S
+@@ -26,7 +26,7 @@
+ 	.endm
+ 
+ 	.macro	get_irqnr_and_base, irqnr, irqstat, base, tmp
+-
++	
+ 	/* get core number */
+ 	mrc     p15, 0, \base, c0, c0, 5
+ 	ubfx    \base, \base, #0, #2
+@@ -36,6 +36,8 @@
+ 	add	\irqstat, \irqstat, \base, lsl #2
+ 	ldr	\tmp, [\irqstat]
+ 
++#ifdef CONFIG_SMP
++
+ 	/* test for mailbox0 (IPI) interrupt */
+ 	tst	\tmp, #0x10
+ 	beq	1030f
+@@ -53,7 +55,7 @@
+ 	mov	r1, sp
+ 	adr	lr, BSYM(1b)
+ 	b	do_IPI
+-
++#endif
+ 1030:
+ 	/* check gpu interrupt */
+ 	tst	\tmp, #0x100
+diff --git a/drivers/clocksource/arm_arch_timer.c b/drivers/clocksource/arm_arch_timer.c
+index 47d96dd..70f686f 100644
+--- a/drivers/clocksource/arm_arch_timer.c
++++ b/drivers/clocksource/arm_arch_timer.c
+@@ -72,16 +72,21 @@ static bool arch_timer_mem_use_virtual;
+ /*
+  * Architected system timer support.
+  */
+-
++//#define KMH 1
+ static __always_inline
+ void arch_timer_reg_write(int access, enum arch_timer_reg reg, u32 val,
+ 			  struct clock_event_device *clk)
+ {
++#ifdef KMH
++	printk(KERN_ALERT "arch_timer_reg_write access:%d, reg:%x, val:%x\n", access, reg, val );
++#endif
+ 	if (access == ARCH_TIMER_MEM_PHYS_ACCESS) {
+ 		struct arch_timer *timer = to_arch_timer(clk);
++		printk(KERN_ALERT "timer->base :%x\n", timer->base );
+ 		switch (reg) {
+ 		case ARCH_TIMER_REG_CTRL:
+ 			writel_relaxed(val, timer->base + CNTP_CTL);
++
+ 			break;
+ 		case ARCH_TIMER_REG_TVAL:
+ 			writel_relaxed(val, timer->base + CNTP_TVAL);
+@@ -89,6 +94,7 @@ void arch_timer_reg_write(int access, enum arch_timer_reg reg, u32 val,
+ 		}
+ 	} else if (access == ARCH_TIMER_MEM_VIRT_ACCESS) {
+ 		struct arch_timer *timer = to_arch_timer(clk);
++		printk(KERN_ALERT "timer->base :%x\n", timer->base );
+ 		switch (reg) {
+ 		case ARCH_TIMER_REG_CTRL:
+ 			writel_relaxed(val, timer->base + CNTV_CTL);
+@@ -98,18 +104,21 @@ void arch_timer_reg_write(int access, enum arch_timer_reg reg, u32 val,
+ 			break;
+ 		}
+ 	} else {
++
+ 		arch_timer_reg_write_cp15(access, reg, val);
+ 	}
+ }
+-
+ static __always_inline
+ u32 arch_timer_reg_read(int access, enum arch_timer_reg reg,
+ 			struct clock_event_device *clk)
+ {
+ 	u32 val;
+-
++#ifdef KMH
++	printk(KERN_ALERT "arch_timer_reg_read access\n");
++#endif
+ 	if (access == ARCH_TIMER_MEM_PHYS_ACCESS) {
+ 		struct arch_timer *timer = to_arch_timer(clk);
++		printk(KERN_ALERT "timer->base :%x\n", timer->base );
+ 		switch (reg) {
+ 		case ARCH_TIMER_REG_CTRL:
+ 			val = readl_relaxed(timer->base + CNTP_CTL);
+@@ -120,6 +129,7 @@ u32 arch_timer_reg_read(int access, enum arch_timer_reg reg,
+ 		}
+ 	} else if (access == ARCH_TIMER_MEM_VIRT_ACCESS) {
+ 		struct arch_timer *timer = to_arch_timer(clk);
++		printk(KERN_ALERT "timer->base :%x\n", timer->base );
+ 		switch (reg) {
+ 		case ARCH_TIMER_REG_CTRL:
+ 			val = readl_relaxed(timer->base + CNTV_CTL);
+@@ -130,8 +140,11 @@ u32 arch_timer_reg_read(int access, enum arch_timer_reg reg,
+ 		}
+ 	} else {
+ 		val = arch_timer_reg_read_cp15(access, reg);
++//		val = 0x5;
+ 	}
+-
++#ifdef KMH
++	printk(KERN_ALERT "arch_timer_reg_read access:%d, reg:%x, val:%x\n", access, reg, val );
++#endif
+ 	return val;
+ }
+ 
+@@ -139,15 +152,22 @@ static __always_inline irqreturn_t timer_handler(const int access,
+ 					struct clock_event_device *evt)
+ {
+ 	unsigned long ctrl;
+-
++#ifdef KMH
++	printk(KERN_ALERT "timer_handler in\n" );
++#endif
+ 	ctrl = arch_timer_reg_read(access, ARCH_TIMER_REG_CTRL, evt);
+ 	if (ctrl & ARCH_TIMER_CTRL_IT_STAT) {
+ 		ctrl |= ARCH_TIMER_CTRL_IT_MASK;
+ 		arch_timer_reg_write(access, ARCH_TIMER_REG_CTRL, ctrl, evt);
+ 		evt->event_handler(evt);
++#ifdef KMH
++		printk(KERN_ALERT "timer_handler out1\n" );
++#endif
+ 		return IRQ_HANDLED;
+ 	}
+-
++#ifdef KMH
++	printk(KERN_ALERT "timer_handler out2\n" );
++#endif
+ 	return IRQ_NONE;
+ }
+ 
+@@ -831,6 +851,7 @@ int __init dc4_arch_timer_init(void)
+ 	 */
+ 	if (is_hyp_mode_available() || !arch_timer_ppi[VIRT_PPI]) {
+ 		arch_timer_use_virtual = false;
++		printk(KERN_ALERT"hyp mode enable\n");
+ 	}
+ 
+ 	arch_timer_c3stop = 0;
+diff --git a/drivers/irqchip/irq-bcm2835.c b/drivers/irqchip/irq-bcm2835.c
+index 5916d6c..8f19255 100644
+--- a/drivers/irqchip/irq-bcm2835.c
++++ b/drivers/irqchip/irq-bcm2835.c
+@@ -184,7 +184,9 @@ static void armctrl_handle_bank(int bank, struct pt_regs *regs)
+ 	u32 stat, irq;
+ 
+ 	while ((stat = readl_relaxed(intc.pending[bank]))) {
++		//printk(KERN_ALERT "DEBUG: Passed %s %d \n",__FUNCTION__,__LINE__, bank, stat, irq);
+ 		irq = MAKE_HWIRQ(bank, ffs(stat) - 1);
++		printk(KERN_ALERT "DEBUG: Passed %s %d bank:%d, stat:%x, irq:%x \n",__FUNCTION__,__LINE__, bank, stat, irq);
+ 		handle_IRQ(irq_linear_revmap(intc.domain, irq), regs);
+ 	}
+ }
+@@ -193,6 +195,9 @@ static void armctrl_handle_shortcut(int bank, struct pt_regs *regs,
+ 	u32 stat)
+ {
+ 	u32 irq = MAKE_HWIRQ(bank, shortcuts[ffs(stat >> SHORTCUT_SHIFT) - 1]);
++	
++	printk(KERN_ALERT "DEBUG: Passed %s %d bank:%d, stat:%x, irq:%x \n",__FUNCTION__,__LINE__, bank, stat, irq);
++	
+ 	handle_IRQ(irq_linear_revmap(intc.domain, irq), regs);
+ }
+ 
+@@ -203,7 +208,9 @@ static void __exception_irq_entry bcm2835_handle_irq(
+ 
+ 	while ((stat = readl_relaxed(intc.pending[0]) & BANK0_VALID_MASK)) {
+ 		if (stat & BANK0_HWIRQ_MASK) {
++			//printk(KERN_ALERT "stat:%x DEBUG: Passed %s %d \n",stat, __FUNCTION__,__LINE__);
+ 			irq = MAKE_HWIRQ(0, ffs(stat & BANK0_HWIRQ_MASK) - 1);
++			printk(KERN_ALERT "DEBUG: Passed %s %d stat:%x, irq:%x\n",__FUNCTION__,__LINE__, stat, irq);	
+ 			handle_IRQ(irq_linear_revmap(intc.domain, irq), regs);
+ 		} else if (stat & SHORTCUT1_MASK) {
+ 			armctrl_handle_shortcut(1, regs, stat & SHORTCUT1_MASK);

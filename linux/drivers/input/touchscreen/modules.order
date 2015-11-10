@@ -1,0 +1,3 @@
+kernel/drivers/input/touchscreen/ads7846.ko
+kernel/drivers/input/touchscreen/egalax_ts.ko
+kernel/drivers/input/touchscreen/stmpe-ts.ko

@@ -1,0 +1,1 @@
+cmd_drivers/media/tuners/m88ts2022.ko := arm-linux-gnueabi-ld -EL -r  -T ./scripts/module-common.lds --build-id  -o drivers/media/tuners/m88ts2022.ko drivers/media/tuners/m88ts2022.o drivers/media/tuners/m88ts2022.mod.o

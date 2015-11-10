@@ -1,0 +1,6 @@
+kernel/drivers/media/radio/si470x/radio-i2c-si470x.ko
+kernel/drivers/media/radio/si4713/si4713.ko
+kernel/drivers/media/radio/radio-tea5764.ko
+kernel/drivers/media/radio/saa7706h.ko
+kernel/drivers/media/radio/tef6862.ko
+kernel/drivers/media/radio/radio-wl1273.ko
